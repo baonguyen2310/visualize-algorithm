@@ -19,21 +19,6 @@ const edges = [
 ];
 
 const App: React.FC = () => {
-  const code = `
-  function fibonacci(n) {
-    if (n <= 1) return n;
-    return fibonacci(n - 1) + fibonacci(n - 2);
-  }
-  `;
-
-  const fibonacci = eval(`(${code})`);
-  alert(fibonacci(4));  // Kết quả: 3
-
-  let userInput = "2+4";
-  let result = Function("return " + userInput)(); // which is same as "return 2+4"
-  alert(result)
-
-
   return (
     <div>
       <h1>Visualization of Recursive Tree</h1>
