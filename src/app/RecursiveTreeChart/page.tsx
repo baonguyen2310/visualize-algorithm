@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import RecursiveTreeChart from '@/components/RecursiveTreeChart';
 
 const nodes = [
@@ -19,9 +19,34 @@ const edges = [
 ];
 
 const App: React.FC = () => {
+
+  const evalRef = useRef<HTMLDivElement>(null);
+
+  function handleClick1 () {
+    const code = `
+    function fibonacci(n) {
+      if (n <= 1) return n;
+      return fibonacci(n - 1) + fibonacci(n - 2);
+    }
+    `;
+
+    const fibonacci = eval(`(${code})`);
+    const result = fibonacci(4);
+    if (evalRef.current) evalRef.current.innerHTML = result;
+  }
+
+  function handleClick2 () {
+    let userInput = "2+4";
+    let result = Function("return " + userInput)(); // which is same as "return 2+4"
+    if (evalRef.current) evalRef.current.innerHTML = result;
+  }
+
   return (
     <div>
       <h1>Visualization of Recursive Tree</h1>
+      <h2 ref={evalRef}>Eval Result</h2>
+      <button onClick={handleClick1}>Eval</button>
+      <button onClick={handleClick2}>New Function</button>
       <RecursiveTreeChart nodes={nodes} edges={edges} />
     </div>
   );
