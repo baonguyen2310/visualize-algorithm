@@ -4,7 +4,15 @@ import { useState } from 'react';
 import * as acorn from 'acorn';
 
 export default function RecursiveInput({ onSubmit }) {
-  const [inputCodeString, setInputCodeString] = useState('');
+  const [inputCodeString, setInputCodeString] = useState (
+    `function fibonacci(n) {
+    if (n <= 1) {
+      const result = n;
+      return result;
+    }
+    const result = fibonacci(n - 1) + fibonacci(n - 2);
+    return result;
+  }`);
   const [inputArgsString, setInputArgsString] = useState('');
 
   const handleSubmit = () => {
