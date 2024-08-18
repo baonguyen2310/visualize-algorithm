@@ -10,6 +10,9 @@
   },
   "dependencies": {
     "acorn": "^8.12.1",
+    "cytoscape": "^3.30.2",
+    "cytoscape-dagre": "^2.5.0",
+    "d3": "^7.9.0",
     "echarts": "^5.5.1",
     "echarts-for-react": "^3.0.2",
     "next": "14.2.5",

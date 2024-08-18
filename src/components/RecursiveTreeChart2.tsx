@@ -1,7 +1,8 @@
-'use client'
-
 import React, { useEffect, useRef } from 'react';
-import * as echarts from 'echarts';
+import cytoscape from 'cytoscape';
+import dagre from 'cytoscape-dagre';
+
+cytoscape.use(dagre); // Register the dagre layout
 
 interface RecursiveNode {
   id: number;
@@ -16,44 +17,68 @@ interface RecursiveTreeChartProps {
 }
 
 const parseRecursiveData = (data: RecursiveNode[]) => {
-  const nodes: { id: number; name: string; symbolSize: number; label: { show: boolean; formatter: string; }; itemStyle: { color: string; }; }[] = [];
-  const links: { source: number; target: number; }[] = [];
+  const nodes = new Map<number, { id: number; name: string; type: string }>();
+  const edges: { data: { source: string; target: string } }[] = [];
   
-  const uniqueNodes = new Map<number, { name: string; type: string }>();
+  const callChildren = new Map<number, number[]>(); // Lưu danh sách con cho mỗi node gọi
 
   data.forEach(item => {
-    // Ensure unique names by using a combination of type and id
     const nodeName = `f(${item.n}) = ${item.result}`;
     
-    uniqueNodes.set(item.id, {
-      name: nodeName,
-      type: item.type
-    });
+    if (item.type === 'call') {
+      nodes.set(item.id, { id: item.id, name: nodeName, type: 'call' });
 
-    if (item.callerId !== null) {
-      links.push({
-        source: item.callerId,
-        target: item.id
+      if (item.callerId !== null) {
+        if (!callChildren.has(item.callerId)) {
+          callChildren.set(item.callerId, []);
+        }
+        callChildren.get(item.callerId)?.push(item.id);
+      }
+    }
+  });
+
+  data.forEach(item => {
+    if (item.type === 'call' && item.callerId !== null && item.id !== item.callerId) {
+      edges.push({
+        data: {
+          source: item.callerId.toString(),
+          target: item.id.toString()
+        }
       });
     }
   });
 
-  uniqueNodes.forEach((value, key) => {
-    nodes.push({
-      id: key,
-      name: value.name,
-      symbolSize: 10,
-      label: {
-        show: true,
-        formatter: `{b}`
-      },
-      itemStyle: {
-        color: value.type === 'call' ? 'blue' : 'green'
+  data.forEach(item => {
+    if (item.type === 'return' && item.callerId !== null) {
+      const parent = Array.from(callChildren.entries()).find(([key, children]) => children.includes(item.id));
+      if (parent) {
+        const [parentId] = parent;
+        edges.push({
+          data: {
+            source: item.id.toString(),
+            target: parentId.toString()
+          }
+        });
       }
-    });
+    }
   });
 
-  return { nodes, links };
+  // Đảm bảo rằng tất cả các node có id hợp lệ
+  const formattedNodes = Array.from(nodes.values()).map(node => ({
+    data: {
+      id: node.id.toString(),
+      label: node.name,
+      type: node.type
+    }
+  }));
+
+  // Kiểm tra và loại bỏ các edge không hợp lệ
+  const validEdges = edges.filter(edge => {
+    return formattedNodes.some(node => node.data.id === edge.data.source) &&
+           formattedNodes.some(node => node.data.id === edge.data.target);
+  });
+
+  return { nodes: formattedNodes, edges: validEdges };
 };
 
 const RecursiveTreeChart: React.FC<RecursiveTreeChartProps> = ({ data }) => {
@@ -61,35 +86,73 @@ const RecursiveTreeChart: React.FC<RecursiveTreeChartProps> = ({ data }) => {
 
   useEffect(() => {
     if (data.length > 0 && chartRef.current) {
-      const chart = echarts.init(chartRef.current);
-      const { nodes, links } = parseRecursiveData(data);
+      const { nodes, edges } = parseRecursiveData(data);
 
-      chart.setOption({
-        tooltip: {},
-        legend: [{
-          data: ['Call', 'Return']
-        }],
-        series: [{
-          type: 'graph',
-          layout: 'force',
-          symbolSize: 50,
-          roam: true,
-          label: {
-            position: 'right'
+      const cy = cytoscape({
+        container: chartRef.current,
+        elements: [
+          ...nodes,
+          ...edges
+        ],
+        layout: {
+          name: 'dagre'
+        },
+        style: [
+          {
+            selector: 'node',
+            style: {
+              'background-color': 'data(type === "call" ? "blue" : "green")',
+              'label': 'data(label)',
+              'opacity': 0 // Initially hide nodes
+            }
           },
-          edgeSymbol: ['circle', 'arrow'],
-          edgeSymbolSize: [4, 10],
-          data: nodes,
-          links: links,
-          lineStyle: {
-            color: 'source',
-            curveness: 0.3
+          {
+            selector: 'edge',
+            style: {
+              'width': 2,
+              'line-color': '#ccc',
+              'target-arrow-color': '#ccc',
+              'target-arrow-shape': 'triangle',
+              'curve-style': 'bezier',
+              'opacity': 0 // Initially hide edges
+            }
           }
-        }]
+        ]
       });
 
+      // Animation logic with delay
+      const delay = 200; // Time in milliseconds between animations
+      const duration = 200; // Duration of each animation
+
+      const animateGraph = () => {
+        const nodes = cy.nodes();
+        const edges = cy.edges();
+
+        let index = 0;
+        const showNextElement = () => {
+          if (index < nodes.length) {
+            setTimeout(() => {
+              nodes[index].animate({ style: { 'opacity': 1 } }, { duration });
+              index++;
+              showNextElement();
+            }, index * delay);
+          } else if (index < nodes.length + edges.length) {
+            setTimeout(() => {
+              edges[index - nodes.length].animate({ style: { 'opacity': 1 } }, { duration });
+              index++;
+              showNextElement();
+            }, (index - nodes.length) * delay);
+          }
+        };
+
+        showNextElement();
+      };
+
+      // Start animation
+      animateGraph();
+
       return () => {
-        chart.dispose();
+        cy.destroy();
       };
     }
   }, [data]);
