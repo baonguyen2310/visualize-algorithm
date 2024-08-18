@@ -22,6 +22,23 @@ const App: React.FC = () => {
 
   const evalRef = useRef<HTMLDivElement>(null);
 
+  let callCount = 0;
+
+  function fibonacci(n) {
+    callCount++;
+    console.log(`Call #${callCount}: fibonacci(${n})`);
+    if (n <= 1) {
+      console.log(`Return #${callCount}: ${n}`);
+      return n;
+    }
+    const result = fibonacci(n - 1) + fibonacci(n - 2);
+    console.log(`Return #${callCount}: ${result}`);
+    return result;
+  }
+
+  console.log("Result:", fibonacci(4));  // Gọi hàm fibonacci để kiểm tra trace
+
+
   function handleClick1 () {
     const code = `
     function fibonacci(n) {
