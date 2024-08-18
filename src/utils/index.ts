@@ -26,7 +26,7 @@ export const parseRecursiveData = (callData: any[]): RecursiveNode => {
           // Find parent node by id
           const parentNode = nodeMap.get(entry.id - 1); // Điều chỉnh logic nếu cần
           if (parentNode) {
-            parentNode.children.push(node);
+            parentNode.children?.push(node);
           } else {
             rootNodes.push(node); // Trường hợp nút gốc
           }

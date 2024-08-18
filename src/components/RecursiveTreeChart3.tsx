@@ -16,7 +16,7 @@ interface RecursiveTreeChartProps {
 }
 
 const parseRecursiveData = (data: RecursiveNode[]) => {
-  const nodes = [];
+  const nodes: { id: number; name: string; symbolSize: number; label: { show: boolean; formatter: string; }; itemStyle: { color: string; }; }[] = [];
   const links = [];
   
   const uniqueNodes = new Map<number, { name: string; type: string; parentId: number | null }>();
